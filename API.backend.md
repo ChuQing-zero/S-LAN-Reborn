@@ -1,7 +1,7 @@
 # 卡牌拍照识别系统 — 后端 API 规格说明书
-这是一个基于nodejs的后端项目，我的数据库连接方式是mongodb://root:8lY9LH7159Ah26sd@s-lan-relorn-db-mongodb.ns-3mbo57k2.svc:27017
+
 > **版本：v1.0.0** | 更新日期：2026-06-13
->
+>基于nodejs的后端项目链接方式mongodb://root:8lY9LH7159Ah26sd@s-lan-relorn-db-mongodb.ns-3mbo57k2.svc:27017
 > 本文档定义后端需实现的全部接口规格，包含路径、参数、返回值、错误码及业务逻辑说明。后端开发/AI 请严格按此文档实现。
 
 ---
