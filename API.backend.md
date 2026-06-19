@@ -1175,3 +1175,176 @@ Authorization: Bearer <token>
 - [ ] 库列表接口适配新的用户绑定逻辑
 - [ ] 上传/下载接口适配新的转移逻辑
 - [ ] 新建管理员页面 `/pages/admin/admin.vue`（登录→CSV导入→单条录入→列表管理）
+
+---
+
+## 十四、管理员接口 🆕
+
+> 以下接口需要 Admin Token 鉴权（`Authorization: Bearer <admin_token>`）。
+> Admin Token 通过普通登录获取（管理员账号登录后 JWT 包含 admin role）。
+
+### 14.1 版本配置管理
+
+#### 获取所有版本配置
+
+```
+GET /v1/api/admin/version-config
+Authorization: Bearer <admin_token>
+```
+
+**成功 200**：
+```json
+{
+  "data": [
+    {
+      "versionId": 1,
+      "rarities": ["QCSER", "PSER", "SER", "UR", "SR", "R", "N"],
+      "grades": [
+        { "name": "99品", "desc": "完美全新", "hasSub": false },
+        { "name": "9品", "desc": "近新优品", "hasSub": false }
+      ],
+      "defaultRarity": "QCSER",
+      "defaultGrade": "9品",
+      "updatedAt": "2026-06-19T12:00:00Z"
+    }
+  ]
+}
+```
+
+#### 获取单个版本配置
+
+```
+GET /v1/api/admin/version-config/:versionId
+Authorization: Bearer <admin_token>
+```
+
+**成功 200**：返回单个 versionConfig 对象
+**未配置 404**：`{ "error": "Version config not found" }`
+
+#### 创建/更新版本配置（upsert）
+
+```
+PUT /v1/api/admin/version-config/:versionId
+Authorization: Bearer <admin_token>
+```
+
+**请求体**：
+```json
+{
+  "rarities": ["QCSER", "PSER", "SER", "UR", "SR"],
+  "grades": [
+    { "name": "99品", "desc": "完美全新", "hasSub": false },
+    { "name": "9品", "desc": "近新优品", "hasSub": false }
+  ],
+  "defaultRarity": "QCSER",
+  "defaultGrade": "9品"
+}
+```
+
+**校验规则**：
+- `defaultRarity` 必须在 `rarities` 数组中
+- `defaultGrade` 必须在 `grades[].name` 中存在
+- `rarities` 至少 1 项
+
+**成功 200**：返回完整的 versionConfig 对象（含 `updatedAt`）
+
+---
+
+### 14.2 版本管理
+
+#### 更新版本信息
+
+```
+PUT /v1/api/admin/versions/:versionId
+Authorization: Bearer <admin_token>
+```
+
+**请求体**：
+```json
+{
+  "name": "游戏王日文",
+  "lang": "日文",
+  "logo": "/uploads/versions/yugioh_jp.png"
+}
+```
+
+**成功 200**：返回更新后的 version 对象
+
+#### 上传版本 Logo
+
+```
+POST /v1/api/admin/versions/:versionId/logo
+Content-Type: multipart/form-data
+Authorization: Bearer <admin_token>
+```
+
+| 表单字段 | 类型 | 必填 | 说明 |
+|----------|------|:---:|------|
+| image | File | 是 | png/jpg/webp，建议 ≤ 2MB |
+
+**业务逻辑**：自动缩放到宽 200px → 保存到 `uploads/versions/` → 更新 `versions.logo` 字段
+
+**成功 200**：
+```json
+{ "logoUrl": "/uploads/versions/yugioh_jp.png" }
+```
+
+#### 新增版本
+
+```
+POST /v1/api/admin/versions
+Authorization: Bearer <admin_token>
+```
+
+**请求体**：
+```json
+{
+  "name": "新版本名称",
+  "lang": "日文"
+}
+```
+
+**成功 201**：返回新创建的 version 对象
+
+#### 删除版本
+
+```
+DELETE /v1/api/admin/versions/:versionId
+Authorization: Bearer <admin_token>
+```
+
+**成功 200**：`{ "success": true }`
+**失败 409**：有关联数据时拒绝删除
+
+---
+
+### 14.3 管理员接口汇总
+
+| # | 方法 | 路径 | 说明 |
+|----|------|------|------|
+| A1 | GET | `/admin/version-config` | 所有版本配置列表 |
+| A2 | GET | `/admin/version-config/:versionId` | 单版本配置 |
+| A3 | PUT | `/admin/version-config/:versionId` | 创建/更新版本配置 |
+| V1 | PUT | `/admin/versions/:versionId` | 更新版本信息 |
+| V2 | POST | `/admin/versions/:versionId/logo` | 上传版本 Logo |
+| V3 | POST | `/admin/versions` | 新增版本 |
+| V4 | DELETE | `/admin/versions/:versionId` | 删除版本 |
+
+---
+
+### 14.4 图片同步策略
+
+| 层级 | 位置 | 说明 |
+|------|------|------|
+| 前端兜底 | `/static/icons/version_logos/` | 默认版本 logo，后端无数据时使用 |
+| 后端存储 | `uploads/versions/` | 管理员上传的 logo |
+| API 返回 | `GET /versions` 的 `logo` 字段 | 有则返回 URL，无则空字符串 |
+
+**同步流程**：
+```
+管理员上传 logo → POST /admin/versions/:id/logo → 后端保存 + 更新 logo 字段
+                                                  ↓
+用户打开页面 → GET /versions → logo 已是新 URL → 前端自动显示
+```
+
+> 前端每次进页面都重新请求 `GET /versions`，无需额外同步机制。

@@ -765,3 +765,321 @@ async function handleAddCard(cardData) {
 | 18 | GET | `/v1/api/grades` | 品相列表 | 是 |
 | 19 | GET | `/v1/api/grades/psa` | 评级卡子选项 | 是 |
 | 20 | POST | `/v1/api/vision/recognize` | 拍照识别 | 是 |
+
+
+---
+
+## 十四、管理员接口 🆕
+
+> 以下接口需要管理员权限。管理员账号登录后 JWT 包含 `role: "admin"` 字段。
+> 使用与普通用户相同的登录接口 `POST /v1/api/auth/login`，登录后检查 `user.role`。
+
+### 管理员账号
+
+```
+邮箱: admin@s-lan.com
+密码: Admin@2026!
+```
+
+### 14.1 登录并识别管理员
+
+```javascript
+async function adminLogin(email, password) {
+  const { token, user } = await api.post('/v1/api/auth/login', { email, password });
+
+  if (user.role === 'admin') {
+    // 跳转到管理员后台
+    window.location.href = '/pages/admin/dashboard';
+  } else {
+    // 跳转到普通用户首页
+    window.location.href = '/home';
+  }
+
+  return { token, user };
+}
+```
+
+**成功响应：**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "mqkzxpkzv1wh",
+    "nickname": "管理员",
+    "email": "admin@s-lan.com",
+    "role": "admin"
+  }
+}
+```
+
+---
+
+### 14.2 游戏版本管理
+
+#### 获取所有版本（管理员）
+
+```javascript
+// GET /v1/api/admin/versions
+async function getAdminVersions() {
+  const { list } = await api.get('/v1/api/admin/versions');
+  return list;
+}
+
+// 返回:
+// [
+//   { versionId: 1, name: "游戏王日文", lang: "日文", logo: "/uploads/versions/logo.png" },
+//   { versionId: 2, name: "游戏王简中", lang: "简中", logo: "" }
+// ]
+```
+
+#### 获取单个版本
+
+```javascript
+// GET /v1/api/admin/versions/:versionId
+async function getVersion(versionId) {
+  const version = await api.get(`/v1/api/admin/versions/${versionId}`);
+  return version;
+}
+```
+
+#### 新增版本
+
+```javascript
+// POST /v1/api/admin/versions
+async function createVersion(name, lang) {
+  const version = await api.post('/v1/api/admin/versions', { name, lang });
+  return version;
+}
+
+// 使用示例
+const newVersion = await createVersion('游戏王韩文', '韩文');
+// 返回: { versionId: 3, name: "游戏王韩文", lang: "韩文", logo: "" }
+```
+
+#### 更新版本
+
+```javascript
+// PUT /v1/api/admin/versions/:versionId
+async function updateVersion(versionId, data) {
+  const version = await api.put(`/v1/api/admin/versions/${versionId}`, data);
+  return version;
+}
+
+// 使用示例
+await updateVersion(1, {
+  name: '游戏王日文版',
+  lang: '日文',
+  logo: '/uploads/versions/new_logo.png'
+});
+```
+
+#### 删除版本
+
+```javascript
+// DELETE /v1/api/admin/versions/:versionId
+async function deleteVersion(versionId) {
+  const result = await api.delete(`/v1/api/admin/versions/${versionId}`);
+  return result;
+}
+
+// 使用示例
+await deleteVersion(3);
+// 返回: { success: true }
+```
+
+**注意**：版本下有关联卡牌时无法删除，会返回 409 错误。
+
+**错误响应：**
+```json
+{ "error": "Cannot delete version with associated cards", "cardCount": 5 }
+```
+
+#### 上传版本 Logo
+
+```javascript
+// POST /v1/api/admin/versions/:versionId/logo
+async function uploadVersionLogo(versionId, imageFile) {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  const result = await api.post(`/v1/api/admin/versions/${versionId}/logo`, formData, true);
+  return result;
+}
+
+// 使用示例
+const fileInput = document.querySelector('#logoInput');
+const file = fileInput.files[0];
+const { logoUrl } = await uploadVersionLogo(1, file);
+```
+
+**请求格式**：`multipart/form-data`
+**文件限制**：png/jpg/webp，建议 ≤ 2MB
+**成功响应**：`{ "logoUrl": "/uploads/versions/version-1-123456789.png" }`
+
+---
+
+### 14.3 版本配置管理
+
+#### 获取所有版本配置
+
+```javascript
+// GET /v1/api/admin/version-config
+async function getAllVersionConfigs() {
+  const { data } = await api.get('/v1/api/admin/version-config');
+  return data;
+}
+
+// 返回:
+// [
+//   {
+//     versionId: 1,
+//     rarities: ["QCSER", "PSER", "SER", "UR", "SR"],
+//     grades: [{ name: "9品", desc: "近新优品", hasSub: false }],
+//     defaultRarity: "QCSER",
+//     defaultGrade: "9品",
+//     updatedAt: "2026-06-19T12:00:00Z"
+//   }
+// ]
+```
+
+#### 获取单个版本配置
+
+```javascript
+// GET /v1/api/admin/version-config/:versionId
+async function getVersionConfig(versionId) {
+  const config = await api.get(`/v1/api/admin/version-config/${versionId}`);
+  return config;
+}
+```
+
+#### 创建/更新版本配置（upsert）
+
+```javascript
+// PUT /v1/api/admin/version-config/:versionId
+async function saveVersionConfig(versionId, config) {
+  const result = await api.put(`/v1/api/admin/version-config/${versionId}`, config);
+  return result;
+}
+
+// 使用示例
+await saveVersionConfig(1, {
+  rarities: ["QCSER", "PSER", "SER", "UR", "SR", "R", "N"],
+  grades: [
+    { name: "99品", desc: "完美全新", hasSub: false },
+    { name: "9品", desc: "近新优品", hasSub: false },
+    { name: "78品", desc: "标准流通", hasSub: false }
+  ],
+  defaultRarity: "QCSER",
+  defaultGrade: "9品"
+});
+```
+
+**校验规则**：
+- `defaultRarity` 必须在 `rarities` 数组中
+- `defaultGrade` 必须在 `grades[].name` 中存在
+- `rarities` 至少 1 项
+
+---
+
+### 14.4 管理员接口汇总
+
+| 序号 | 方法 | 路径 | 说明 | 需认证 |
+|------|------|------|------|--------|
+| A1 | GET | `/v1/api/admin/versions` | 获取所有版本 | Admin |
+| A2 | GET | `/v1/api/admin/versions/:versionId` | 获取单个版本 | Admin |
+| A3 | POST | `/v1/api/admin/versions` | 新增版本 | Admin |
+| A4 | PUT | `/v1/api/admin/versions/:versionId` | 更新版本 | Admin |
+| A5 | DELETE | `/v1/api/admin/versions/:versionId` | 删除版本 | Admin |
+| A6 | POST | `/v1/api/admin/versions/:versionId/logo` | 上传 Logo | Admin |
+| B1 | GET | `/v1/api/admin/version-config` | 所有版本配置 | Admin |
+| B2 | GET | `/v1/api/admin/version-config/:versionId` | 单版本配置 | Admin |
+| B3 | PUT | `/v1/api/admin/version-config/:versionId` | 创建/更新配置 | Admin |
+
+---
+
+### 14.5 普通用户获取版本相关数据（含默认值）
+
+#### 获取罕贵度列表（带默认配置）
+
+```javascript
+// GET /v1/api/rarities?versionId=1
+async function getRarities(versionId) {
+  const result = await api.get(`/v1/api/rarities?versionId=${versionId}`);
+  return result;
+}
+
+// 返回:
+{
+  "list": ["QCSER", "PSER", "SER", "UR", "SR", "R", "N"],
+  "default": "QCSER"  // 从版本配置中读取
+}
+```
+
+#### 获取品相列表（带默认配置）
+
+```javascript
+// GET /v1/api/grades?versionId=1
+async function getGrades(versionId) {
+  const result = await api.get(`/v1/api/grades?versionId=${versionId}`);
+  return result;
+}
+
+// 返回:
+{
+  "list": [
+    { name: "9品", desc: "近新优品", hasSub: false },
+    { name: "评级卡", desc: "", hasSub: true }
+  ],
+  "default": "9品"  // 从版本配置中读取
+}
+```
+
+---
+
+## 十五、管理员后台页面建议
+
+### 15.1 登录判断逻辑
+
+```javascript
+// 在用户登录后检查角色
+async function handleLogin(email, password) {
+  const { token, user } = await login(email, password);
+
+  // 保存用户信息
+  localStorage.setItem('token', token);
+  localStorage.setItem('user', JSON.stringify(user));
+
+  // 根据角色跳转
+  if (user.role === 'admin') {
+    window.location.href = '/pages/admin/dashboard';
+  } else {
+    window.location.href = '/home';
+  }
+}
+```
+
+### 15.2 管理员页面权限检查
+
+```javascript
+// 在管理员页面加载时检查权限
+function checkAdminAccess() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (user.role !== 'admin') {
+    // 非管理员，跳转到首页
+    window.location.href = '/home';
+    return false;
+  }
+  return true;
+}
+```
+
+### 15.3 管理员导航结构
+
+```
+/pages/admin/
+├── dashboard.vue       # 管理员首页/概览
+├── versions.vue        # 游戏版本管理（增删改查）
+├── version-config.vue  # 版本配置（罕贵度、品相）
+└── cards.vue           # 卡牌信息管理（可选）
+```

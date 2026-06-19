@@ -1,30 +1,68 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../../middleware/auth');
+const { VersionConfig, DEFAULT_RARITIES, DEFAULT_GRADES } = require('../../models/VersionConfig');
 
 // GET /v1/api/rarities - 罕贵度列表
-router.get('/rarities', auth, (req, res) => {
-  const rarities = [
-    '20SER', 'QCSER', 'PSER', 'HR', 'HPR', 'ESR', 'ESPR', 'SER',
-    'SEMR', 'SEPR', 'PR', 'UPR', 'PGR', 'GSER', 'GMR', 'GR',
-    'UTR', 'CR', 'UR', 'RR', 'USR', 'UMR', 'SR', 'SPR',
-    'NPR', 'NMR', 'NKC', 'R', 'RKC', 'RPR', 'N', 'NR'
-  ];
-  res.json({ list: rarities });
+router.get('/rarities', auth, async (req, res) => {
+  try {
+    const { versionId } = req.query;
+    
+    let rarities = [...DEFAULT_RARITIES];
+    let defaultRarity = DEFAULT_RARITIES[1] || null;
+
+    // 如果指定了 versionId，尝试从数据库获取配置
+    if (versionId) {
+      const config = await VersionConfig.findOne({ versionId: parseInt(versionId) });
+      if (config) {
+        rarities = config.rarities;
+        defaultRarity = config.defaultRarity || rarities[1] || null;
+      }
+    }
+
+    res.json({ 
+      list: rarities,
+      default: defaultRarity
+    });
+  } catch (error) {
+    console.error('Get rarities error:', error);
+    // 出错时返回默认值
+    res.json({ 
+      list: DEFAULT_RARITIES,
+      default: DEFAULT_RARITIES[1] || null
+    });
+  }
 });
 
 // GET /v1/api/grades - 品相列表
-router.get('/grades', auth, (req, res) => {
-  const grades = [
-    { name: '99品', desc: '完美全新', hasSub: false },
-    { name: '9品', desc: '近新优品', hasSub: false },
-    { name: '78品', desc: '标准流通', hasSub: false },
-    { name: '56品', desc: '中小瑕疵', hasSub: false },
-    { name: '34品', desc: '重大次品', hasSub: false },
-    { name: '评级卡', desc: '', hasSub: true },
-    { name: '自定义', desc: '', hasSub: true }
-  ];
-  res.json({ list: grades });
+router.get('/grades', auth, async (req, res) => {
+  try {
+    const { versionId } = req.query;
+    
+    let grades = [...DEFAULT_GRADES];
+    let defaultGrade = DEFAULT_GRADES[1]?.name || null;
+
+    // 如果指定了 versionId，尝试从数据库获取配置
+    if (versionId) {
+      const config = await VersionConfig.findOne({ versionId: parseInt(versionId) });
+      if (config) {
+        grades = config.grades;
+        defaultGrade = config.defaultGrade || grades[1]?.name || null;
+      }
+    }
+
+    res.json({ 
+      list: grades,
+      default: defaultGrade
+    });
+  } catch (error) {
+    console.error('Get grades error:', error);
+    // 出错时返回默认值
+    res.json({ 
+      list: DEFAULT_GRADES,
+      default: DEFAULT_GRADES[1]?.name || null
+    });
+  }
 });
 
 // GET /v1/api/grades/psa - 评级卡子选项

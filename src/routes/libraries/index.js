@@ -3,21 +3,39 @@ const router = express.Router();
 const auth = require('../../middleware/auth');
 const Library = require('../../models/Library');
 const Card = require('../../models/Card');
+const Version = require('../../models/Version');
 const { generateLibraryId } = require('../../utils/helpers');
 
 // GET /v1/api/versions - 游戏版本列表
-router.get('/versions', auth, (req, res) => {
-  const versions = [
-    { id: 1, name: '游戏王日文', lang: '日文', logo: '/static/icons/version_logos/logo_yugioh_jp.png' },
-    { id: 2, name: '游戏王简中', lang: '简中', logo: '/static/icons/version_logos/logo_yugioh_cn.png' },
-    { id: 3, name: '游戏王英文', lang: '英文', logo: '/static/icons/version_logos/logo_yugioh_en.png' },
-    { id: 4, name: '游戏王测试', lang: '测试', logo: '/static/icons/version_logos/logo_yugioh_test.png' },
-    { id: 5, name: '宝可梦日文', lang: '日文', logo: '/static/icons/version_logos/logo_pokemon_jp.png' },
-    { id: 6, name: '宝可梦简中', lang: '简中', logo: '/static/icons/version_logos/logo_pokemon_cn.png' },
-    { id: 7, name: '宝可梦英文', lang: '英文', logo: '/static/icons/version_logos/logo_pokemon_en.png' },
-    { id: 8, name: '宝可梦繁中', lang: '繁中', logo: '/static/icons/version_logos/logo_pokemon_tw.png' }
-  ];
-  res.json({ list: versions });
+router.get('/versions', auth, async (req, res) => {
+  try {
+    // 尝试从数据库读取
+    let versions = await Version.find().lean();
+    
+    // 如果数据库为空，返回默认数据
+    if (!versions || versions.length === 0) {
+      versions = [
+        { id: 'default-1', name: '游戏王日文', lang: '日文', logo: '/static/icons/version_logos/logo_yugioh_jp.png' },
+        { id: 'default-2', name: '游戏王简中', lang: '简中', logo: '/static/icons/version_logos/logo_yugioh_cn.png' },
+        { id: 'default-3', name: '游戏王英文', lang: '英文', logo: '/static/icons/version_logos/logo_yugioh_en.png' },
+        { id: 'default-4', name: '游戏王测试', lang: '测试', logo: '/static/icons/version_logos/logo_yugioh_test.png' },
+        { id: 'default-5', name: '宝可梦日文', lang: '日文', logo: '/static/icons/version_logos/logo_pokemon_jp.png' },
+        { id: 'default-6', name: '宝可梦简中', lang: '简中', logo: '/static/icons/version_logos/logo_pokemon_cn.png' },
+        { id: 'default-7', name: '宝可梦英文', lang: '英文', logo: '/static/icons/version_logos/logo_pokemon_en.png' },
+        { id: 'default-8', name: '宝可梦繁中', lang: '繁中', logo: '/static/icons/version_logos/logo_pokemon_tw.png' }
+      ];
+    }
+    
+    res.json({ list: versions });
+  } catch (error) {
+    console.error('Get versions error:', error);
+    // 出错时返回默认数据
+    const versions = [
+      { name: '游戏王日文', lang: '日文', logo: '/static/icons/version_logos/logo_yugioh_jp.png' },
+      { name: '游戏王简中', lang: '简中', logo: '/static/icons/version_logos/logo_yugioh_cn.png' }
+    ];
+    res.json({ list: versions });
+  }
 });
 
 // GET /v1/api/libraries/local - 本地库列表
