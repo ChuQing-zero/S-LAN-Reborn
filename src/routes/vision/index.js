@@ -5,7 +5,8 @@ const auth = require('../../middleware/auth');
 // POST /v1/api/vision/recognize - 拍照识别卡牌
 router.post('/recognize', auth, async (req, res) => {
   try {
-    if (!req.files || !req.files.image) {
+    // req.file 是单文件上传的结果（不是 req.files）
+    if (!req.file) {
       return res.status(400).json({ error: 'image is required' });
     }
 

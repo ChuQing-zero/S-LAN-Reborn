@@ -15,6 +15,7 @@ const referenceRoutes = require('./routes/reference');
 const visionRoutes = require('./routes/vision');
 const adminRoutes = require('./routes/admin/versionConfig');
 const adminVersionsRoutes = require('./routes/admin/versions');
+const adminCardInfoRoutes = require('./routes/admin/cardInfo');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/v1/api', referenceRoutes);
 app.use('/v1/api/vision', upload.single('image'), visionRoutes);
 app.use('/v1/api/admin/version-config', adminRoutes);
 app.use('/v1/api/admin/versions', adminVersionsRoutes);
+app.use('/v1/api/card-info', adminCardInfoRoutes);
 
 // Compatibility alias
 app.use('/api/auth', authRoutes);

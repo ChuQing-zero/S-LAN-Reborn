@@ -121,6 +121,10 @@ router.post('/libraries', auth, async (req, res) => {
       cardCount: 0
     });
   } catch (error) {
+    // 处理 MongoDB 重复键错误 E11000
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Library already exists' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -194,6 +198,29 @@ router.get('/libraries/:code/cards', auth, async (req, res) => {
       page: parseInt(page),
       pageSize: parseInt(pageSize)
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /v1/api/libraries/:code - 删除库
+router.delete('/libraries/:code', auth, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const type = req.query.type || 'local';
+
+    const library = await Library.findOne({ code, type, owner: req.user.id });
+    if (!library) {
+      return res.status(404).json({ error: 'Library not found' });
+    }
+
+    // 删除库中的所有卡牌
+    await Card.deleteMany({ libraryCode: code });
+
+    // 删除库
+    await Library.deleteOne({ _id: library._id });
+
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

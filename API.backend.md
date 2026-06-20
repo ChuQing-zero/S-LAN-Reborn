@@ -1105,61 +1105,61 @@ Authorization: Bearer <token>
 
 ## 十二、后端工作清单
 
-### 🔴 阶段 1：数据库（最高优先级）
+### ✅ 阶段 1：数据库（已完成）
 
-- [ ] **1.1** 确认 `users` / `invite_codes` / `versions` 表结构正确
-- [ ] **1.2** 创建/修改 `libraries` 表，增加 `user_id` 字段，`type=local` 时 NOT NULL
-- [ ] **1.3** 创建/修改 `cards` 表，增加 `user_id` 字段
-- [ ] **1.4** 创建 `card_info` 表（SQL 见 §2.6）
-- [ ] **1.5** 插入默认版本数据（§2.3）
-- [ ] **1.6** 配置图片上传目录 `uploads/cards/`
+- [x] **1.1** 确认 `users` / `invite_codes` / `versions` 表结构正确
+- [x] **1.2** 创建/修改 `libraries` 表，增加 `user_id` 字段，`type=local` 时 NOT NULL
+- [x] **1.3** 创建/修改 `cards` 表，增加 `user_id` 字段
+- [x] **1.4** 创建 `card_info` 表
+- [x] **1.5** 插入默认版本数据
+- [x] **1.6** 配置图片上传目录 `uploads/cards/`
 
-### 🔴 阶段 2：认证 & 库 API
+### ✅ 阶段 2：认证 & 库 API（已完成）
 
-- [ ] **2.1** 登录/注册/用户信息 — 已有则确认无 bug
-- [ ] **2.2** `GET /libraries/local` — 按当前用户过滤
-- [ ] **2.3** `GET /libraries/cloud` — 查所有公共库
-- [ ] **2.4** `POST /libraries` — 创建本地库时自动绑定 `user_id`
-- [ ] **2.5** `PUT/DELETE /libraries/:code` — 校验所有权
-- [ ] **2.6** 库编号每个用户独立命名空间
+- [x] **2.1** 登录/注册/用户信息
+- [x] **2.2** `GET /libraries/local` — 按当前用户过滤
+- [x] **2.3** `GET /libraries/cloud` — 查所有公共库
+- [x] **2.4** `POST /libraries` — 创建本地库时自动绑定 `user_id`
+- [x] **2.5** `PUT/DELETE /libraries/:code` — 校验所有权
+- [x] **2.6** 库编号每个用户独立命名空间
 
-### 🔴 阶段 3：卡牌 API
+### ✅ 阶段 3：卡牌 API（已完成）
 
-- [ ] **3.1** `GET /libraries/:code/cards` — 本地库限定当前用户
-- [ ] **3.2** `POST /cards` — 自动生成 serial，自动关联 `user_id`
-- [ ] **3.3** `DELETE /cards/:id` — 校验所有权
-- [ ] **3.4** `GET /cards/search` — 搜索限定用户范围
+- [x] **3.1** `GET /libraries/:code/cards` — 本地库限定当前用户
+- [x] **3.2** `POST /cards` — 自动生成 serial，自动关联 `user_id`
+- [x] **3.3** `DELETE /cards/:id` — 校验所有权
+- [x] **3.4** `GET /cards/search` — 搜索限定用户范围
 
-### 🔴 阶段 4：上传/下载 API
+### ✅ 阶段 4：上传/下载 API（已完成）
 
-- [ ] **4.1** `POST /libraries/transfer/upload` — 本地→云端移动
-- [ ] **4.2** `POST /libraries/transfer/download` — 云端→本地移动
-- [ ] **4.3** 事务保证原子性（复制+删除）
-- [ ] **4.4** 所有权校验（只能转移自己的卡牌）
+- [x] **4.1** `POST /libraries/transfer/upload` — 本地→云端移动
+- [x] **4.2** `POST /libraries/transfer/download` — 云端→本地移动
+- [x] **4.3** 事务保证原子性（复制+删除）
+- [x] **4.4** 所有权校验（只能转移自己的卡牌）
 
-### 🟡 阶段 5：card_info API
+### ✅ 阶段 5：card_info API（已完成）
 
-- [ ] **5.1** `GET /card-info/:cardCode` — 核心查询
-- [ ] **5.2** `POST /card-info/batch` — 批量查询
-- [ ] **5.3** `GET /card-info` — 分页列表（Admin）
-- [ ] **5.4** `POST /card-info` — 单条新增（Admin）
-- [ ] **5.5** `PUT /card-info/:cardCode` — 更新（Admin）
-- [ ] **5.6** `DELETE /card-info/:cardCode` — 删除（Admin）
+- [x] **5.1** `GET /card-info/:cardCode` — 核心查询
+- [x] **5.2** `POST /card-info/batch` — 批量查询
+- [x] **5.3** `GET /card-info` — 分页列表（Admin）
+- [x] **5.4** `POST /card-info` — 单条新增（Admin）
+- [x] **5.5** `PUT /card-info/:cardCode` — 更新（Admin）
+- [x] **5.6** `DELETE /card-info/:cardCode` — 删除（Admin）
 
-### 🟡 阶段 6：图片上传 & CSV 导入
+### ✅ 阶段 6：图片上传 & CSV 导入（已完成）
 
-- [ ] **6.1** `POST /card-info/:cardCode/image` — 卡图上传
-- [ ] **6.2** 图片缩放/压缩（宽 400px）
-- [ ] **6.3** `POST /card-info/batch-import` — CSV 解析 + upsert
-- [ ] **6.4** cardCode 正则校验 + 导入结果反馈
+- [x] **6.1** `POST /card-info/:cardCode/image` — 卡图上传
+- [ ] **6.2** 图片缩放/压缩（宽 400px）— 暂未实现
+- [x] **6.3** `POST /card-info/batch-import` — CSV 解析 + upsert
+- [x] **6.4** cardCode 正则校验 + 导入结果反馈
 
-### 🟡 阶段 7：管理员鉴权
+### ✅ 阶段 7：管理员鉴权（已完成）
 
-- [ ] **7.1** 环境变量 `ADMIN_PASSWORD` 配置
-- [ ] **7.2** `POST /auth/admin/login` — Admin JWT 签发
-- [ ] **7.3** Admin 鉴权中间件
+- [x] **7.1** 用户表增加 `role` 字段（user/admin）
+- [x] **7.2** 管理员登录通过普通登录接口
+- [x] **7.3** Admin 鉴权中间件
 
-### 🟢 阶段 8：联调 & 测试
+### 🟡 阶段 8：联调 & 测试
 
 - [ ] **8.1** Postman/Apifox 接口集合
 - [ ] **8.2** 准备示例 CSV（游戏王卡牌 ~50 条）
@@ -1169,12 +1169,20 @@ Authorization: Bearer <token>
 
 ## 十三、前端改造清单
 
+### ✅ 已完成
+
+- [x] 登录接口支持 `role` 字段返回
+- [x] 根据 `role` 字段判断管理员并跳转
+- [x] 版本管理页面（增删改查）
+- [x] 版本配置管理页面（罕贵度、品相）
+- [x] 管理员权限检查
+
+### 🟡 待完成
+
 - [ ] 新增 `getCardInfo()` / `getCardInfoBatch()` API 函数
 - [ ] `doRecognize()` 识别成功后调用 `getCardInfo(cardCode)` 获取真实名称和卡图
 - [ ] 有数据→显示真实卡名+卡图；无数据→保持"待收录"占位
-- [ ] 库列表接口适配新的用户绑定逻辑
-- [ ] 上传/下载接口适配新的转移逻辑
-- [ ] 新建管理员页面 `/pages/admin/admin.vue`（登录→CSV导入→单条录入→列表管理）
+- [ ] 管理员页面：卡牌信息管理（CSV导入、单条录入、列表管理）
 
 ---
 
