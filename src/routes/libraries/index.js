@@ -38,12 +38,12 @@ router.get('/versions', auth, async (req, res) => {
   }
 });
 
-// GET /v1/api/libraries/local - 本地库列表
+// GET /v1/api/libraries/local - 本地库列表（仅当前用户）
 router.get('/libraries/local', auth, async (req, res) => {
   try {
-    const libraries = await Library.find({ type: 'local', owner: req.user.id });
+    const libraries = await Library.find({ type: 'local', userId: req.user.id });
     const list = await Promise.all(libraries.map(async (lib) => {
-      const cardCount = await Card.countDocuments({ libraryCode: lib.code });
+      const cardCount = await Card.countDocuments({ libraryCode: lib.code, userId: req.user.id });
       return { code: lib.code, cardCount };
     }));
     res.json({ list });
@@ -52,12 +52,12 @@ router.get('/libraries/local', auth, async (req, res) => {
   }
 });
 
-// GET /v1/api/libraries/cloud - 云端库列表
+// GET /v1/api/libraries/cloud - 云端库列表（所有公共库）
 router.get('/libraries/cloud', auth, async (req, res) => {
   try {
-    const libraries = await Library.find({ type: 'cloud', owner: req.user.id });
+    const libraries = await Library.find({ type: 'cloud', userId: null });
     const list = await Promise.all(libraries.map(async (lib) => {
-      const cardCount = await Card.countDocuments({ libraryCode: lib.code });
+      const cardCount = await Card.countDocuments({ libraryCode: lib.code, userId: null });
       return { code: lib.code, cardCount };
     }));
     res.json({ list });
@@ -72,12 +72,13 @@ router.get('/libraries/:code', auth, async (req, res) => {
     const { code } = req.params;
     const type = req.query.type || 'local';
     
-    const library = await Library.findOne({ code, type, owner: req.user.id });
+    const userIdFilter = type === 'cloud' ? null : req.user.id;
+    const library = await Library.findOne({ code, type, userId: userIdFilter });
     if (!library) {
       return res.status(404).json({ error: 'Library not found' });
     }
 
-    const cardCount = await Card.countDocuments({ libraryCode: code });
+    const cardCount = await Card.countDocuments({ libraryCode: code, userId: userIdFilter });
     res.json({
       code: library.code,
       id: library.id,
@@ -100,7 +101,8 @@ router.post('/libraries', auth, async (req, res) => {
     }
 
     const code = name;
-    const existing = await Library.findOne({ code, owner: req.user.id });
+    const userId = type === 'cloud' ? null : req.user.id;
+    const existing = await Library.findOne({ code, userId });
     if (existing) {
       return res.status(409).json({ error: 'Library already exists' });
     }
@@ -111,7 +113,8 @@ router.post('/libraries', auth, async (req, res) => {
       id: libraryId,
       name,
       type,
-      owner: req.user.id
+      owner: req.user.id,
+      userId
     });
     await library.save();
 
@@ -135,7 +138,7 @@ router.put('/libraries/:code', auth, async (req, res) => {
     const { code } = req.params;
     const { name, type } = req.body;
 
-    const library = await Library.findOne({ code, owner: req.user.id });
+    const library = await Library.findOne({ code, userId: req.user.id });
     if (!library) {
       return res.status(404).json({ error: 'Library not found' });
     }
@@ -144,7 +147,7 @@ router.put('/libraries/:code', auth, async (req, res) => {
     if (type) library.type = type;
     await library.save();
 
-    const cardCount = await Card.countDocuments({ libraryCode: code });
+    const cardCount = await Card.countDocuments({ libraryCode: code, userId: req.user.id });
     res.json({
       code: library.code,
       id: library.id,
@@ -163,12 +166,13 @@ router.get('/libraries/:code/cards', auth, async (req, res) => {
     const { code } = req.params;
     const { type = 'local', rarity, condition, versionId, page = 1, pageSize = 20 } = req.query;
 
-    const library = await Library.findOne({ code, type, owner: req.user.id });
+    const userIdFilter = type === 'cloud' ? null : req.user.id;
+    const library = await Library.findOne({ code, type, userId: userIdFilter });
     if (!library) {
       return res.json({ list: [], total: 0, page: 1, pageSize: 20 });
     }
 
-    const query = { libraryCode: code };
+    const query = { libraryCode: code, userId: userIdFilter };
     if (rarity) query.rarity = rarity;
     if (condition) query.condition = condition;
     if (versionId) query.versionId = parseInt(versionId);
@@ -209,15 +213,13 @@ router.delete('/libraries/:code', auth, async (req, res) => {
     const { code } = req.params;
     const type = req.query.type || 'local';
 
-    const library = await Library.findOne({ code, type, owner: req.user.id });
+    const userIdFilter = type === 'cloud' ? null : req.user.id;
+    const library = await Library.findOne({ code, type, userId: userIdFilter });
     if (!library) {
       return res.status(404).json({ error: 'Library not found' });
     }
 
-    // 删除库中的所有卡牌
-    await Card.deleteMany({ libraryCode: code });
-
-    // 删除库
+    await Card.deleteMany({ libraryCode: code, userId: userIdFilter });
     await Library.deleteOne({ _id: library._id });
 
     res.json({ success: true });
