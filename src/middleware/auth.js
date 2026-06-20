@@ -23,9 +23,15 @@ const auth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, config.jwtSecret);
     
-    const user = await User.findOne({ id: decoded.userId });
+    // 自动同步用户：如果本地数据库没有这个用户，自动创建
+    let user = await User.findOne({ id: decoded.userId });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      user = await User.create({
+        id: decoded.userId,
+        nickname: decoded.nickname || '',
+        email: decoded.email || '',
+        inviteCode: ''
+      });
     }
 
     req.user = user;
